@@ -151,11 +151,14 @@ function App() {
 
   const allTags = [...new Set([...DEFAULT_TAGS,...customTags])];
 
+  const [ghLoaded, setGhLoaded] = useState(false);
+
   useEffect(() => {
     fetch(SCRIPT_URL)
       .then(r=>r.json())
       .then(d=>{ if(d.ok&&Array.isArray(d.tasks)&&d.tasks.length>0) setTasks(d.tasks); })
-      .catch(()=>{});
+      .catch(()=>{})
+      .finally(()=>setGhLoaded(true));
   }, []);
 
   const saveToGitHub = useCallback(async (newTasks) => {
@@ -168,7 +171,10 @@ function App() {
     } catch(e) { setGhStatus("error"); setGhError(e.message); setTimeout(()=>setGhStatus("idle"),5000); }
   }, []);
 
-  const updateTasks = useCallback((t) => { setTasks(t); saveToGitHub(t); }, [saveToGitHub]);
+  const updateTasks = useCallback((t) => {
+    if (!ghLoaded) return;
+    setTasks(t); saveToGitHub(t);
+  }, [ghLoaded, saveToGitHub]);
 
   const saveTask = t => {
     const newTags = t.tags.filter(tag=>!DEFAULT_TAGS.includes(tag)&&!customTags.includes(tag));
